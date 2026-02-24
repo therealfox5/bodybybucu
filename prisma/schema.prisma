@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime?
+  hashedPassword String?
+  image          String?
+  phone          String?
+  role           String    @default("CLIENT")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  accounts           Account[]
+  sessions           Session[]
+  weightEntries      WeightEntry[]
+  measurementEntries MeasurementEntry[]
+  workouts           Workout[]
+  personalRecords    PersonalRecord[]
+  bookedSessions     TrainingSession[]  @relation("ClientSessions")
+  trainerSessions    TrainingSession[]  @relation("TrainerSessions")
+  announcements      Announcement[]
+  goals              Goal[]
+  checkIns           CheckIn[]
+}
+
+model Availability {
+  id          String   @id @default(cuid())
+  trainerId   String
+  dayOfWeek   Int
+  startTime   String
+  endTime     String
+  slotMinutes Int      @default(60)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TrainingSession {
+  id        String   @id @default(cuid())
+  clientId  String
+  trainerId String
+  date      DateTime
+  duration  Int      @default(60)
+  type      String   @default("PERSONAL")
+  status    String   @default("BOOKED")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client  User @relation("ClientSessions", fields: [clientId], references: [id])
+  trainer User @relation("TrainerSessions", fields: [trainerId], references: [id])
+
+  @@index([clientId])
+  @@index([trainerId])
+  @@index([date])
+}
+
+model WeightEntry {
+  id     String   @id @default(cuid())
+  userId String
+  weight Float
+  date   DateTime @default(now())
+  notes  String?
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model MeasurementEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  date       DateTime @default(now())
+  neck       Float?
+  shoulders  Float?
+  chest      Float?
+  leftArm    Float?
+  rightArm   Float?
+  waist      Float?
+  hips       Float?
+  leftThigh  Float?
+  rightThigh Float?
+  leftCalf   Float?
+  rightCalf  Float?
+  notes      String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model Exercise {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  muscleGroup  String
+  equipment    String?
+  isCompound   Boolean  @default(false)
+  isPRTracked  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  sets            ExerciseSet[]
+  personalRecords PersonalRecord[]
+}
+
+model Workout {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String?
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  notes       String?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sets ExerciseSet[]
+
+  @@index([userId, startedAt])
+}
+
+model ExerciseSet {
+  id         String   @id @default(cuid())
+  workoutId  String
+  exerciseId String
+  setNumber  Int
+  reps       Int?
+  weight     Float?
+  duration   Int?
+  rpe        Float?
+  variant    String?
+  isWarmup   Boolean  @default(false)
+  isPR       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  workout  Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@index([workoutId])
+  @@index([exerciseId])
+}
+
+model PersonalRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  exerciseId  String
+  weight      Float
+  reps        Int
+  estimated1RM Float?
+  date        DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@index([userId, exerciseId])
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  authorId  String
+  title     String
+  body      String
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  author    User     @relation(fields: [authorId], references: [id])
+}
+
+model Goal {
+  id          String    @id @default(cuid())
+  userId      String
+  description String
+  targetDate  DateTime?
+  achieved    Boolean   @default(false)
+  achievedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CheckIn {
+  id     String   @id @default(cuid())
+  userId String
+  date   DateTime @default(now())
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
