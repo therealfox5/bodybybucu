@@ -110,8 +110,7 @@ export default async function DashboardPage() {
                         {format(new Date(s.date), "EEE, MMM d")}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(s.date), "h:mm a")} •{" "}
-                        {s.trainer.name}
+                        {format(new Date(s.date), "h:mm a")}
                       </p>
                     </div>
                     <Badge variant="secondary" className="text-xs">

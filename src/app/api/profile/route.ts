@@ -17,9 +17,10 @@ export async function PUT(req: Request) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({}, { status: 401 });
 
-  const { name, phone, image } = await req.json();
+  const { name, phone, image, email } = await req.json();
   const data: Record<string, unknown> = { name, phone };
   if (typeof image === "string") data.image = image;
+  if (typeof email === "string" && email) data.email = email;
   await db.user.update({
     where: { id: session.user.id },
     data,

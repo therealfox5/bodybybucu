@@ -31,6 +31,7 @@ function resizeImage(file: File): Promise<string> {
 
 export default function ProfilePage() {
   const { data: session, update } = useSession();
+  const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [image, setImage] = useState<string | null>(null);
@@ -45,6 +46,8 @@ export default function ProfilePage() {
       fetch("/api/profile")
         .then((r) => r.json())
         .then((data) => {
+          if (data.email) setEmail(data.email);
+          if (data.name) setName(data.name);
           if (data.phone) setPhone(data.phone);
           if (data.image) setImage(data.image);
         });
@@ -75,7 +78,7 @@ export default function ProfilePage() {
     const res = await fetch("/api/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, phone }),
+      body: JSON.stringify({ name, phone, email }),
     });
     if (res.ok) {
       toast.success("Profile updated");
@@ -146,7 +149,10 @@ export default function ProfilePage() {
           <form onSubmit={handleSaveProfile} className="space-y-4">
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input value={session?.user?.email || ""} disabled />
+              <Input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
