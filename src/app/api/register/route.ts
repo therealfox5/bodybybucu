@@ -13,7 +13,10 @@ const registerSchema = z.object({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, email, password } = registerSchema.parse(body);
+    const parsed = registerSchema.parse(body);
+    const name = parsed.name;
+    const email = parsed.email.toLowerCase();
+    const password = parsed.password;
 
     const existing = await db.user.findUnique({ where: { email } });
     if (existing) {
