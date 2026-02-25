@@ -75,7 +75,7 @@ export async function GET(req: Request) {
 
       slots.push({
         trainerId: rule.trainerId,
-        date: slotDateTime.toISOString(),
+        date: `${dateStr}T${timeStr}:00`,
         time: timeStr,
         available: !bookedSet.has(key) && !isPast && bookingOpen,
       });
