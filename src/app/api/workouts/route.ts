@@ -23,19 +23,27 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({}, { status: 401 });
+  try {
+    const session = await auth();
+    console.log("POST /api/workouts — authed:", !!session?.user, "userId:", session?.user?.id);
+    if (!session?.user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { name } = await req.json();
+    const { name } = await req.json();
 
-  const workout = await db.workout.create({
-    data: {
-      userId: session.user.id,
-      name: name || `Workout ${new Date().toLocaleDateString()}`,
-    },
-  });
+    const workout = await db.workout.create({
+      data: {
+        userId: session.user.id,
+        name: name || `Workout ${new Date().toLocaleDateString()}`,
+      },
+    });
 
-  appendToSheet("Workouts", [new Date().toISOString(), "CREATED", workout.id, session.user.id, workout.name]);
+    console.log("POST /api/workouts — created:", workout.id);
+    appendToSheet("Workouts", [new Date().toISOString(), "CREATED", workout.id, session.user.id, workout.name]);
 
-  return NextResponse.json(workout, { status: 201 });
+    return NextResponse.json(workout, { status: 201 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("POST /api/workouts error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

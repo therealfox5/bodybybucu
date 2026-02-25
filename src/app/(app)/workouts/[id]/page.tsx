@@ -87,9 +87,12 @@ export default function WorkoutDetailPage() {
       } else if (res.status === 401) {
         window.location.href = "/login";
       } else {
-        setError("Workout not found");
+        const data = await res.json().catch(() => ({}));
+        console.error("Workout fetch failed:", res.status, data);
+        setError(data.error || `Workout not found (${res.status})`);
       }
-    } catch {
+    } catch (e) {
+      console.error("Workout fetch exception:", e);
       setError("Failed to load workout");
     }
   }, [workoutId]);

@@ -6,19 +6,29 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const workout = await db.workout.findFirst({
-    where: { id },
-    include: {
-      sets: {
-        include: { exercise: { select: { name: true, muscleGroup: true } } },
-        orderBy: [{ exerciseId: "asc" }, { setNumber: "asc" }],
+  try {
+    const { id } = await params;
+    console.log("GET /api/workouts/[id] — id:", id);
+    const workout = await db.workout.findFirst({
+      where: { id },
+      include: {
+        sets: {
+          include: { exercise: { select: { name: true, muscleGroup: true } } },
+          orderBy: [{ exerciseId: "asc" }, { setNumber: "asc" }],
+        },
       },
-    },
-  });
+    });
 
-  if (!workout) return NextResponse.json({}, { status: 404 });
-  return NextResponse.json(workout);
+    if (!workout) {
+      console.log("GET /api/workouts/[id] — not found for id:", id);
+      return NextResponse.json({ error: "not found", id }, { status: 404 });
+    }
+    return NextResponse.json(workout);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("GET /api/workouts/[id] error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function PUT(
