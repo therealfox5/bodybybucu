@@ -130,7 +130,7 @@ export async function POST(
     }
   }
 
-  appendToSheet("ExerciseSets", [new Date().toISOString(), "CREATED", set.id, workoutId, exerciseId, setNumber, reps, weight, duration, variant, isPR]);
+  appendToSheet("ExerciseSets", [new Date().toISOString(), "CREATED", userId, set.id, workoutId, exerciseId, setNumber, reps, weight, duration, variant, isPR]);
 
   return NextResponse.json({ ...set, isPR }, { status: 201 });
   } catch (error: unknown) {
@@ -255,7 +255,7 @@ export async function PUT(
     }
   }
 
-  appendToSheet("ExerciseSets", [new Date().toISOString(), "UPDATED", setId, workoutId, exercise.id, reps, weight, duration, variant, isPR]);
+  appendToSheet("ExerciseSets", [new Date().toISOString(), "UPDATED", userId, setId, workoutId, exercise.id, reps, weight, duration, variant, isPR]);
 
   return NextResponse.json({ ...updated, isPR });
 }
