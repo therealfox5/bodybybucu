@@ -152,8 +152,8 @@ export default function SchedulePage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Schedule</h1>
 
-      {/* My Upcoming Sessions */}
-      {sessions.filter((s) => s.status === "BOOKED").length > 0 && (
+      {/* My Upcoming Sessions (hide past) */}
+      {sessions.filter((s) => s.status === "BOOKED" && toGymTime(s.date).getTime() > Date.now()).length > 0 && (
         <Card className="border-border bg-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -162,7 +162,7 @@ export default function SchedulePage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {sessions
-              .filter((s) => s.status === "BOOKED")
+              .filter((s) => s.status === "BOOKED" && toGymTime(s.date).getTime() > Date.now())
               .map((s) => (
                 <div
                   key={s.id}

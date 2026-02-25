@@ -99,8 +99,12 @@ export default function WorkoutDetailPage() {
   useEffect(() => {
     if (showExercisePicker) {
       fetch(`/api/exercises?q=${encodeURIComponent(searchQuery)}`)
-        .then((r) => r.json())
-        .then(setExercises);
+        .then((r) => {
+          if (!r.ok) throw new Error("Failed to load exercises");
+          return r.json();
+        })
+        .then(setExercises)
+        .catch(() => toast.error("Could not load exercises"));
     }
   }, [searchQuery, showExercisePicker]);
 

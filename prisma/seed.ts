@@ -29,7 +29,7 @@ async function main() {
     await prisma.exerciseSet.deleteMany();
     await prisma.exercise.deleteMany();
 
-    // Seed exercise catalog — 6 exercises
+    // Seed exercise catalog — 7 benchmark exercises
     const exercises = [
       { name: "Push Ups", muscleGroup: "Chest", equipment: "Bodyweight", isCompound: true, isPRTracked: true },
       { name: "Pull Ups", muscleGroup: "Back", equipment: "Bodyweight", isCompound: true, isPRTracked: true },

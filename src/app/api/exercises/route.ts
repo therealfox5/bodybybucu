@@ -6,17 +6,23 @@ export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user) return NextResponse.json([], { status: 401 });
 
-  const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q") || "";
-  const group = searchParams.get("group") || "";
+  try {
+    const { searchParams } = new URL(req.url);
+    const q = searchParams.get("q") || "";
+    const group = searchParams.get("group") || "";
 
-  const exercises = await db.exercise.findMany({
-    where: {
-      ...(q ? { name: { contains: q } } : {}),
-      ...(group ? { muscleGroup: group } : {}),
-    },
-    orderBy: { name: "asc" },
-  });
+    const where: Record<string, unknown> = {};
+    if (q) where.name = { contains: q };
+    if (group) where.muscleGroup = group;
 
-  return NextResponse.json(exercises);
+    const exercises = await db.exercise.findMany({
+      where,
+      orderBy: { name: "asc" },
+    });
+
+    return NextResponse.json(exercises);
+  } catch (err) {
+    console.error("Failed to fetch exercises:", err);
+    return NextResponse.json([], { status: 500 });
+  }
 }
