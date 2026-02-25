@@ -1,7 +1,9 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const from = process.env.NOTIFICATION_FROM_EMAIL || "noreply@bodybybucu.com";
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
+
 
 export async function sendSessionReminder(
   to: string,
@@ -19,7 +21,8 @@ export async function sendSessionReminder(
     timeZone: "America/New_York",
   });
 
-  await resend.emails.send({
+  const from = process.env.NOTIFICATION_FROM_EMAIL || "noreply@bodybybucu.com";
+  await getResend().emails.send({
     from,
     to,
     subject: `Reminder: Training session in ${hours} hours`,
