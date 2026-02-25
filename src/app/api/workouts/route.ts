@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { appendToSheet } from "@/lib/google-sheets";
 
 export async function GET() {
   const session = await auth();
@@ -38,7 +37,6 @@ export async function POST(req: Request) {
     });
 
     console.log("POST /api/workouts — created:", workout.id);
-    appendToSheet("Workouts", [new Date().toISOString(), "CREATED", workout.id, session.user.id, workout.name]);
 
     return NextResponse.json(workout, { status: 201 });
   } catch (err: unknown) {
