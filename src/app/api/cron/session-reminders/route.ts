@@ -16,28 +16,28 @@ export async function GET(req: Request) {
     realNow.toLocaleString("en-US", { timeZone: "America/New_York" })
   );
 
-  // 7-hour window: sessions starting between 6.5h and 7.5h from now
-  const sevenHFrom = new Date(easternNow.getTime() + 6.5 * 60 * 60 * 1000);
-  const sevenHTo = new Date(easternNow.getTime() + 7.5 * 60 * 60 * 1000);
+  // Cron runs once daily at 10am UTC (~5-6am Eastern).
+  // Send 7h reminders for all sessions today that haven't been notified yet.
+  const todayStart = new Date(easternNow);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(easternNow);
+  todayEnd.setHours(23, 59, 59, 999);
 
-  // 2-hour window: sessions starting between 1.5h and 2.5h from now
-  const twoHFrom = new Date(easternNow.getTime() + 1.5 * 60 * 60 * 1000);
-  const twoHTo = new Date(easternNow.getTime() + 2.5 * 60 * 60 * 1000);
-
-  // Query sessions needing 7h notification
+  // 7h reminders: all today's sessions not yet notified
   const sessions7h = await db.trainingSession.findMany({
     where: {
-      date: { gte: sevenHFrom, lte: sevenHTo },
+      date: { gte: todayStart, lte: todayEnd },
       status: "BOOKED",
       notified7h: false,
     },
     include: { client: { select: { name: true, email: true } } },
   });
 
-  // Query sessions needing 2h notification
+  // 2h reminders: sessions starting within 3 hours from now
+  const threeHoursOut = new Date(easternNow.getTime() + 3 * 60 * 60 * 1000);
   const sessions2h = await db.trainingSession.findMany({
     where: {
-      date: { gte: twoHFrom, lte: twoHTo },
+      date: { gte: easternNow, lte: threeHoursOut },
       status: "BOOKED",
       notified2h: false,
     },
