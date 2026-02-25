@@ -42,15 +42,8 @@ export async function GET() {
     return NextResponse.json({
       ok: false,
       error: message,
-      keyDiag: {
-        rawLen: rawKey.length,
-        decodedLen: key.length,
-        startsOk: key.startsWith("-----BEGIN PRIVATE KEY-----"),
-        endsOk: key.trimEnd().endsWith("-----END PRIVATE KEY-----"),
-        hasNewlines: key.includes("\n"),
-        first30: key.substring(0, 30),
-        isBase64: rawKey.startsWith("LS0t"),
-      },
+      email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      sheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID,
     }, { status: 500 });
   }
 }
