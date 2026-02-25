@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/lib/db";
 import { z } from "zod/v4";
+import { appendToSheet } from "@/lib/google-sheets";
 
 const registerSchema = z.object({
   name: z.string().min(2),
@@ -26,6 +27,8 @@ export async function POST(req: Request) {
     const user = await db.user.create({
       data: { name, email, hashedPassword, role: "CLIENT" },
     });
+
+    appendToSheet("Users", [new Date().toISOString(), "CREATED", user.id, user.name, user.email, "CLIENT"]);
 
     return NextResponse.json(
       { user: { id: user.id, name: user.name, email: user.email } },

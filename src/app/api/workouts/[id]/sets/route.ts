@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { appendToSheet } from "@/lib/google-sheets";
 
 function computeEpley1RM(weight: number, reps: number): number {
   if (reps === 1) return weight;
@@ -122,6 +123,8 @@ export async function POST(
     }
   }
 
+  appendToSheet("ExerciseSets", [new Date().toISOString(), "CREATED", set.id, workoutId, exerciseId, setNumber, reps, weight, duration, variant, isPR]);
+
   return NextResponse.json({ ...set, isPR }, { status: 201 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -237,6 +240,8 @@ export async function PUT(
       });
     }
   }
+
+  appendToSheet("ExerciseSets", [new Date().toISOString(), "UPDATED", setId, workoutId, exercise.id, reps, weight, duration, variant, isPR]);
 
   return NextResponse.json({ ...updated, isPR });
 }

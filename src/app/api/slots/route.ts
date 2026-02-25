@@ -70,12 +70,12 @@ export async function GET(req: Request) {
       const timeStr = format(currentTime, "HH:mm");
       const key = `${rule.trainerId}_${dateStr}_${timeStr}`;
 
-      const slotDateTime = new Date(`${dateStr}T${timeStr}:00`);
+      const slotDateTime = parse(`${dateStr} ${timeStr}`, "yyyy-MM-dd HH:mm", new Date());
       const isPast = slotDateTime <= now;
 
       slots.push({
         trainerId: rule.trainerId,
-        date: `${dateStr}T${timeStr}:00`,
+        date: slotDateTime.toISOString(),
         time: timeStr,
         available: !bookedSet.has(key) && !isPast && bookingOpen,
       });

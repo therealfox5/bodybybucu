@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { appendToSheet } from "@/lib/google-sheets";
 
 export async function PUT(
   req: Request,
@@ -32,6 +33,8 @@ export async function PUT(
     where: { id },
     data: { status, notes },
   });
+
+  appendToSheet("Sessions", [new Date().toISOString(), "UPDATED", id, trainingSession.clientId, trainingSession.trainerId, status, notes]);
 
   return NextResponse.json(updated);
 }

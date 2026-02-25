@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { appendToSheet } from "@/lib/google-sheets";
 
 export async function GET() {
   const session = await auth();
@@ -25,6 +26,8 @@ export async function PUT(req: Request) {
     where: { id: session.user.id },
     data,
   });
+
+  appendToSheet("Profiles", [new Date().toISOString(), "UPDATED", session.user.id, name, phone, email, image]);
 
   return NextResponse.json({ success: true });
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { startOfDay, endOfDay } from "date-fns";
+import { appendToSheet } from "@/lib/google-sheets";
 
 const GYM_LAT = 40.679591;
 const GYM_LNG = -74.2834154;
@@ -59,6 +60,8 @@ export async function POST(req: Request) {
   const checkIn = await db.checkIn.create({
     data: { userId: session.user.id },
   });
+
+  appendToSheet("CheckIns", [new Date().toISOString(), "CREATED", checkIn.id, session.user.id, lat, lng]);
 
   return NextResponse.json(checkIn, { status: 201 });
 }

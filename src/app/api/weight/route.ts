@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod/v4";
+import { appendToSheet } from "@/lib/google-sheets";
 
 const weightSchema = z.object({
   weight: z.number().min(50).max(600),
@@ -37,6 +38,8 @@ export async function POST(req: Request) {
     },
   });
 
+  appendToSheet("Weight", [new Date().toISOString(), "CREATED", entry.id, session.user.id, weight, entry.date.toISOString(), notes]);
+
   return NextResponse.json(entry, { status: 201 });
 }
 
@@ -63,6 +66,8 @@ export async function PUT(req: Request) {
     data: { weight, notes: notes ?? null },
   });
 
+  appendToSheet("Weight", [new Date().toISOString(), "UPDATED", id, session.user.id, weight, notes]);
+
   return NextResponse.json(updated);
 }
 
@@ -80,6 +85,8 @@ export async function DELETE(req: Request) {
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await db.weightEntry.delete({ where: { id } });
+
+  appendToSheet("Weight", [new Date().toISOString(), "DELETED", id, session.user.id]);
 
   return NextResponse.json({ success: true });
 }

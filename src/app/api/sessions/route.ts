@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { appendToSheet } from "@/lib/google-sheets";
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -68,6 +69,8 @@ export async function POST(req: Request) {
       duration: duration || 60,
     },
   });
+
+  appendToSheet("Sessions", [new Date().toISOString(), "CREATED", trainingSession.id, session.user.id, trainerId, new Date(date).toISOString(), type || "PERSONAL", duration || 60, "BOOKED"]);
 
   return NextResponse.json(trainingSession, { status: 201 });
 }
