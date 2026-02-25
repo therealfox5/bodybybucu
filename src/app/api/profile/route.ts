@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { appendToSheet } from "@/lib/google-sheets";
+import { upsertUserRow } from "@/lib/google-sheets";
 
 export async function GET() {
   const session = await auth();
@@ -28,7 +28,9 @@ export async function PUT(req: Request) {
     data,
   });
 
-  appendToSheet("Profiles", [new Date().toISOString(), "UPDATED", session.user.id, name, phone, email, image, instagram]);
+  // Update the user's row in the Users sheet (same row created at registration)
+  const user = await db.user.findUnique({ where: { id: session.user.id }, select: { createdAt: true, role: true } });
+  upsertUserRow(session.user.id, [session.user.id, name, email, phone, instagram, user?.role || "CLIENT", user?.createdAt?.toISOString() || ""]);
 
   return NextResponse.json({ success: true });
 }
