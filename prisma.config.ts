@@ -3,6 +3,17 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+// Convert libsql:// to https:// for Prisma CLI (migrations/push)
+function getDatasourceUrl() {
+  const url = process.env["TURSO_DATABASE_URL"] || process.env["DATABASE_URL"] || "";
+  const token = process.env["TURSO_AUTH_TOKEN"] || "";
+  if (url.startsWith("libsql://")) {
+    const httpsUrl = url.replace("libsql://", "https://");
+    return token ? `${httpsUrl}?authToken=${token}` : httpsUrl;
+  }
+  return url;
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -10,6 +21,6 @@ export default defineConfig({
     seed: "npx tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: getDatasourceUrl(),
   },
 });

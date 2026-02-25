@@ -35,6 +35,7 @@ export async function POST(req: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 });
     }
+    console.error("Register error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
