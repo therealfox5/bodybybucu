@@ -5,8 +5,13 @@ const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 
 function getAuth() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const key = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  if (!email || !key) return null;
+  const rawKey = process.env.GOOGLE_PRIVATE_KEY;
+  if (!email || !rawKey) return null;
+
+  // Key is stored as base64 to avoid newline issues in env vars
+  const key = rawKey.startsWith("LS0t")
+    ? Buffer.from(rawKey, "base64").toString("utf8")
+    : rawKey.replace(/\\n/g, "\n");
 
   return new google.auth.JWT({ email, key, scopes: SCOPES });
 }
