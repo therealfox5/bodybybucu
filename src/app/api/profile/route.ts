@@ -28,7 +28,7 @@ export async function PUT(req: Request) {
     data,
   });
 
-  appendToSheet("Profiles", [new Date().toISOString(), "UPDATED", session.user.id, name, phone, email, image]);
+  appendToSheet("Profiles", [new Date().toISOString(), "UPDATED", session.user.id, name, phone, email, image, instagram]);
 
   return NextResponse.json({ success: true });
 }
