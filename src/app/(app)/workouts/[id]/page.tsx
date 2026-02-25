@@ -84,6 +84,8 @@ export default function WorkoutDetailPage() {
       const res = await fetch(`/api/workouts/${workoutId}`);
       if (res.ok) {
         setWorkout(await res.json());
+      } else if (res.status === 401) {
+        window.location.href = "/login";
       } else {
         setError("Workout not found");
       }

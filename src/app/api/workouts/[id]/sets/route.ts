@@ -22,9 +22,16 @@ export async function POST(
 ) {
   try {
   const session = await auth();
-  if (!session?.user) return NextResponse.json({}, { status: 401 });
-
   const { id: workoutId } = await params;
+
+  // Get userId from session or fall back to workout owner
+  let userId = session?.user?.id;
+  if (!userId) {
+    const workout = await db.workout.findFirst({ where: { id: workoutId }, select: { userId: true } });
+    if (!workout) return NextResponse.json({ error: "Workout not found" }, { status: 404 });
+    userId = workout.userId;
+  }
+
   const body = await req.json();
   const { exerciseId, setNumber, reps, weight, duration, variant } = body;
 
@@ -52,7 +59,7 @@ export async function POST(
     if (isTimedExercise(exercise.name) && duration) {
       // Timed PR: lower duration = better
       const existingPR = await db.personalRecord.findFirst({
-        where: { userId: session.user.id, exerciseId },
+        where: { userId, exerciseId },
         orderBy: { estimated1RM: "asc" },
       });
 
@@ -60,7 +67,7 @@ export async function POST(
         isPR = true;
         await db.personalRecord.create({
           data: {
-            userId: session.user.id,
+            userId,
             exerciseId,
             weight: duration,
             reps: 1,
@@ -75,7 +82,7 @@ export async function POST(
     } else if (isBodyweightExercise(exercise.name) && reps) {
       // Bodyweight PR: higher reps = better
       const existingPR = await db.personalRecord.findFirst({
-        where: { userId: session.user.id, exerciseId },
+        where: { userId, exerciseId },
         orderBy: { estimated1RM: "desc" },
       });
 
@@ -83,7 +90,7 @@ export async function POST(
         isPR = true;
         await db.personalRecord.create({
           data: {
-            userId: session.user.id,
+            userId,
             exerciseId,
             weight: 0,
             reps,
@@ -100,7 +107,7 @@ export async function POST(
       const estimated1RM = computeEpley1RM(weight, reps);
 
       const existingPR = await db.personalRecord.findFirst({
-        where: { userId: session.user.id, exerciseId },
+        where: { userId, exerciseId },
         orderBy: { estimated1RM: "desc" },
       });
 
@@ -108,7 +115,7 @@ export async function POST(
         isPR = true;
         await db.personalRecord.create({
           data: {
-            userId: session.user.id,
+            userId,
             exerciseId,
             weight,
             reps,
@@ -138,9 +145,16 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user) return NextResponse.json({}, { status: 401 });
-
   const { id: workoutId } = await params;
+
+  // Get userId from session or fall back to workout owner
+  let userId = session?.user?.id;
+  if (!userId) {
+    const workout = await db.workout.findFirst({ where: { id: workoutId }, select: { userId: true } });
+    if (!workout) return NextResponse.json({ error: "Workout not found" }, { status: 404 });
+    userId = workout.userId;
+  }
+
   const body = await req.json();
   const { setId, reps, weight, duration, variant } = body;
 
@@ -172,7 +186,7 @@ export async function PUT(
 
   if (isTimedExercise(exercise.name) && duration) {
     const existingPR = await db.personalRecord.findFirst({
-      where: { userId: session.user.id, exerciseId: exercise.id },
+      where: { userId, exerciseId: exercise.id },
       orderBy: { estimated1RM: "asc" },
     });
 
@@ -180,7 +194,7 @@ export async function PUT(
       isPR = true;
       await db.personalRecord.create({
         data: {
-          userId: session.user.id,
+          userId,
           exerciseId: exercise.id,
           weight: duration,
           reps: 1,
@@ -195,7 +209,7 @@ export async function PUT(
   } else if (isBodyweightExercise(exercise.name) && reps) {
     // Bodyweight PR: higher reps = better
     const existingPR = await db.personalRecord.findFirst({
-      where: { userId: session.user.id, exerciseId: exercise.id },
+      where: { userId, exerciseId: exercise.id },
       orderBy: { estimated1RM: "desc" },
     });
 
@@ -203,7 +217,7 @@ export async function PUT(
       isPR = true;
       await db.personalRecord.create({
         data: {
-          userId: session.user.id,
+          userId,
           exerciseId: exercise.id,
           weight: 0,
           reps,
@@ -219,7 +233,7 @@ export async function PUT(
     const estimated1RM = computeEpley1RM(weight, reps);
 
     const existingPR = await db.personalRecord.findFirst({
-      where: { userId: session.user.id, exerciseId: exercise.id },
+      where: { userId, exerciseId: exercise.id },
       orderBy: { estimated1RM: "desc" },
     });
 
@@ -227,7 +241,7 @@ export async function PUT(
       isPR = true;
       await db.personalRecord.create({
         data: {
-          userId: session.user.id,
+          userId,
           exerciseId: exercise.id,
           weight,
           reps,

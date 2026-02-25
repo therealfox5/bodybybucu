@@ -6,12 +6,9 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({}, { status: 401 });
-
   const { id } = await params;
   const workout = await db.workout.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id },
     include: {
       sets: {
         include: { exercise: { select: { name: true, muscleGroup: true } } },
