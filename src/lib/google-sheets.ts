@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { waitUntil } from "@vercel/functions";
 
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 
@@ -17,7 +18,7 @@ export function appendToSheet(sheetName: string, row: (string | number | null | 
 
   const sheets = google.sheets({ version: "v4", auth });
 
-  sheets.spreadsheets.values
+  const promise = sheets.spreadsheets.values
     .append({
       spreadsheetId,
       range: `${sheetName}!A1`,
@@ -29,4 +30,6 @@ export function appendToSheet(sheetName: string, row: (string | number | null | 
     .catch((err) => {
       console.error(`[Google Sheets] Failed to append to ${sheetName}:`, err.message);
     });
+
+  waitUntil(promise);
 }
