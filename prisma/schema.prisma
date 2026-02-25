@@ -49,6 +49,7 @@ model User {
   hashedPassword String?
   image          String?
   phone          String?
+  instagram      String?
   role           String    @default("CLIENT")
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -79,16 +80,18 @@ model Availability {
 }
 
 model TrainingSession {
-  id        String   @id @default(cuid())
-  clientId  String
-  trainerId String
-  date      DateTime
-  duration  Int      @default(60)
-  type      String   @default("PERSONAL")
-  status    String   @default("BOOKED")
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  clientId   String
+  trainerId  String
+  date       DateTime
+  duration   Int      @default(60)
+  type       String   @default("PERSONAL")
+  status     String   @default("BOOKED")
+  notes      String?
+  notified7h Boolean  @default(false)
+  notified2h Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   client  User @relation("ClientSessions", fields: [clientId], references: [id])
   trainer User @relation("TrainerSessions", fields: [trainerId], references: [id])

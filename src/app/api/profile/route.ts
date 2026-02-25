@@ -9,7 +9,7 @@ export async function GET() {
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { name: true, email: true, phone: true, role: true, image: true },
+    select: { name: true, email: true, phone: true, instagram: true, role: true, image: true },
   });
   return NextResponse.json(user);
 }
@@ -18,10 +18,11 @@ export async function PUT(req: Request) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({}, { status: 401 });
 
-  const { name, phone, image, email } = await req.json();
+  const { name, phone, image, email, instagram } = await req.json();
   const data: Record<string, unknown> = { name, phone };
   if (typeof image === "string") data.image = image;
   if (typeof email === "string" && email) data.email = email;
+  if (typeof instagram === "string") data.instagram = instagram;
   await db.user.update({
     where: { id: session.user.id },
     data,

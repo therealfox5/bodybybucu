@@ -27,9 +27,10 @@ export async function GET(req: Request) {
     where: { isActive: true },
   });
 
-  // Get all booked sessions for this week
+  // Get this user's booked sessions for this week
   const bookedSessions = await db.trainingSession.findMany({
     where: {
+      clientId: session.user.id,
       date: { gte: weekStart, lte: weekEnd },
       status: { in: ["BOOKED", "COMPLETED"] },
     },

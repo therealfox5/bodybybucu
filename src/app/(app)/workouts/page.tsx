@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Plus, Trophy } from "lucide-react";
+import { toast } from "sonner";
 import Link from "next/link";
 
 interface PR {
@@ -109,6 +110,8 @@ export default function WorkoutsPage() {
     if (res.ok) {
       const workout = await res.json();
       router.push(`/workouts/${workout.id}`);
+    } else {
+      toast.error("Failed to create benchmark workout");
     }
     setLoading(false);
   }

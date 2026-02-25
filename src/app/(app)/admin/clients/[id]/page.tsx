@@ -44,6 +44,12 @@ interface ClientData {
   }[];
 }
 
+/** DB stores Eastern times as UTC values — extract UTC components for correct display */
+function toGymTime(dateStr: string): Date {
+  const d = new Date(dateStr);
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes());
+}
+
 export default function AdminClientDetailPage() {
   const params = useParams();
   const clientId = params.id as string;
@@ -133,7 +139,7 @@ export default function AdminClientDetailPage() {
                 >
                   <div>
                     <p className="text-sm font-medium">
-                      {format(new Date(s.date), "EEE, MMM d • h:mm a")}
+                      {format(toGymTime(s.date), "EEE, MMM d • h:mm a")}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {s.trainer.name}

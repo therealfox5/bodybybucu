@@ -44,10 +44,11 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { trainerId, date, type, duration } = body;
 
-  // Check slot not already booked
+  // Check if this client already booked this slot
   const existing = await db.trainingSession.findFirst({
     where: {
       trainerId,
+      clientId: session.user.id,
       date: new Date(date),
       status: { in: ["BOOKED", "COMPLETED"] },
     },
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
 
   if (existing) {
     return NextResponse.json(
-      { error: "This slot is already booked" },
+      { error: "You have already booked this slot" },
       { status: 409 }
     );
   }

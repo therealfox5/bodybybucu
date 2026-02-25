@@ -62,6 +62,7 @@ export default function WorkoutDetailPage() {
   const workoutId = params.id as string;
 
   const [workout, setWorkout] = useState<Workout | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showExercisePicker, setShowExercisePicker] = useState(false);
@@ -79,8 +80,16 @@ export default function WorkoutDetailPage() {
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
 
   const fetchWorkout = useCallback(async () => {
-    const res = await fetch(`/api/workouts/${workoutId}`);
-    if (res.ok) setWorkout(await res.json());
+    try {
+      const res = await fetch(`/api/workouts/${workoutId}`);
+      if (res.ok) {
+        setWorkout(await res.json());
+      } else {
+        setError("Workout not found");
+      }
+    } catch {
+      setError("Failed to load workout");
+    }
   }, [workoutId]);
 
   useEffect(() => {
@@ -236,6 +245,17 @@ export default function WorkoutDetailPage() {
     });
     toast.success("Benchmark saved!");
     router.push("/workouts");
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-4 text-center">
+        <p className="text-destructive">{error}</p>
+        <Button variant="outline" onClick={() => router.push("/workouts")}>
+          Back to Benchmarks
+        </Button>
+      </div>
+    );
   }
 
   if (!workout) {

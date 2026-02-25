@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
+import { Instagram } from "lucide-react";
 
 function resizeImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -34,6 +35,7 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [instagram, setInstagram] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -49,6 +51,7 @@ export default function ProfilePage() {
           if (data.email) setEmail(data.email);
           if (data.name) setName(data.name);
           if (data.phone) setPhone(data.phone);
+          if (data.instagram) setInstagram(data.instagram);
           if (data.image) setImage(data.image);
         });
     }
@@ -78,7 +81,7 @@ export default function ProfilePage() {
     const res = await fetch("/api/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, phone, email }),
+      body: JSON.stringify({ name, phone, email, instagram }),
     });
     if (res.ok) {
       toast.success("Profile updated");
@@ -170,6 +173,28 @@ export default function ProfilePage() {
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="(555) 123-4567"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="instagram" className="flex items-center gap-1.5">
+                <Instagram className="h-4 w-4" />
+                Instagram
+              </Label>
+              <Input
+                id="instagram"
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                placeholder="username"
+              />
+              {instagram && (
+                <a
+                  href={`https://instagram.com/${instagram.replace(/^@/, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-brand hover:underline"
+                >
+                  View profile
+                </a>
+              )}
             </div>
             <Button type="submit" disabled={loading}>
               Save Changes

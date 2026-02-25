@@ -7,6 +7,11 @@ import { format, formatDistanceToNow, startOfDay, endOfDay } from "date-fns";
 import { WeightMiniChart } from "./weight-mini-chart";
 import { CheckInButton } from "./check-in-button";
 
+/** DB stores Eastern times as UTC values — extract UTC components for correct display */
+function toGymTime(date: Date): Date {
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes());
+}
+
 function formatPRDisplay(pr: { weight: number; reps: number; exercise: { name: string } }): string {
   if (pr.exercise.name.includes("Mile Time")) {
     const m = Math.floor(pr.weight / 60);
@@ -107,10 +112,10 @@ export default async function DashboardPage() {
                   <div key={s.id} className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">
-                        {format(new Date(s.date), "EEE, MMM d")}
+                        {format(toGymTime(s.date), "EEE, MMM d")}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(s.date), "h:mm a")}
+                        {format(toGymTime(s.date), "h:mm a")}
                       </p>
                     </div>
                     <Badge variant="secondary" className="text-xs">
