@@ -17,6 +17,12 @@ import { toast } from "sonner";
 import { format, startOfWeek, addDays, addWeeks } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 
+/** Server (UTC) stores Eastern times as UTC values — extract UTC components for correct display */
+function toGymTime(dateStr: string): Date {
+  const d = new Date(dateStr);
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes());
+}
+
 interface Availability {
   id: string;
   dayOfWeek: number;
@@ -247,7 +253,7 @@ export default function AdminSchedulePage() {
                       {s.client.name || s.client.email}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(s.date), "EEE, MMM d • h:mm a")} •{" "}
+                      {format(toGymTime(s.date), "EEE, MMM d • h:mm a")} •{" "}
                       {s.type}
                     </p>
                   </div>

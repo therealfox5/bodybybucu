@@ -12,12 +12,18 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 
+/** Server (UTC) stores Eastern times as UTC values — extract UTC components for correct display */
+function toGymTime(dateStr: string): Date {
+  const d = new Date(dateStr);
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes());
+}
+
 function ChangeDeadlineTimer({ sessionDate }: { sessionDate: string }) {
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
     function update() {
-      const deadline = new Date(sessionDate).getTime() - 6 * 60 * 60 * 1000;
+      const deadline = toGymTime(sessionDate).getTime() - 6 * 60 * 60 * 1000;
       const now = Date.now();
       const diff = deadline - now;
 
@@ -164,15 +170,15 @@ export default function SchedulePage() {
                 >
                   <div>
                     <p className="text-sm font-medium">
-                      {format(new Date(s.date), "EEEE, MMM d")}
+                      {format(toGymTime(s.date), "EEEE, MMM d")}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(s.date), "h:mm a")}
+                      {format(toGymTime(s.date), "h:mm a")}
                     </p>
                     <ChangeDeadlineTimer sessionDate={s.date} />
                   </div>
                   <div className="flex items-center gap-2">
-                    {new Date(s.date).getTime() - Date.now() > 6 * 60 * 60 * 1000 ? (
+                    {toGymTime(s.date).getTime() - Date.now() > 6 * 60 * 60 * 1000 ? (
                       <Button
                         variant="outline"
                         size="sm"
