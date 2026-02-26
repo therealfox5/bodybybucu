@@ -34,7 +34,12 @@ function LoginForm() {
       setError("Invalid email or password");
       setLoading(false);
     } else {
-      router.push(callbackUrl);
+      const sess = await fetch("/api/auth/session").then((r) => r.json());
+      if (sess?.user?.role === "ADMIN" || sess?.user?.role === "TRAINER") {
+        router.push("/admin");
+      } else {
+        router.push(callbackUrl);
+      }
     }
   }
 
