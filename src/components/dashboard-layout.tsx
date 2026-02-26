@@ -45,6 +45,10 @@ export default function DashboardLayout({
   const isAdmin =
     session?.user?.role === "ADMIN" || session?.user?.role === "TRAINER";
 
+  const visibleClientNav = isAdmin
+    ? clientNav.filter((item) => item.href !== "/track" && item.href !== "/workouts")
+    : clientNav;
+
   return (
     <div className="flex min-h-screen">
       {/* Desktop Sidebar */}
@@ -60,7 +64,7 @@ export default function DashboardLayout({
           <span className="text-lg font-bold">BodyByBucu</span>
         </div>
         <nav className="flex-1 space-y-1 p-3">
-          {clientNav.map((item) => (
+          {visibleClientNav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -145,7 +149,7 @@ export default function DashboardLayout({
           </Button>
         </div>
         <nav className="space-y-1 p-3">
-          {clientNav.map((item) => (
+          {visibleClientNav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -226,7 +230,7 @@ export default function DashboardLayout({
 
         {/* Mobile Bottom Tab Bar */}
         <nav className="fixed bottom-0 left-0 right-0 z-30 flex border-t border-border bg-card md:hidden">
-          {clientNav.map((item) => (
+          {visibleClientNav.map((item) => (
             <Link
               key={item.href}
               href={item.href}

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format, startOfWeek, addDays, addWeeks } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, Pencil, Check, X } from "lucide-react";
 
 /** Server (UTC) stores Eastern times as UTC values — extract UTC components for correct display */
 function toGymTime(dateStr: string): Date {
@@ -36,6 +36,7 @@ interface Session {
   date: string;
   status: string;
   type: string;
+  duration: number;
   client: { name: string; email: string };
   trainer: { name: string };
 }
@@ -61,6 +62,13 @@ export default function AdminSchedulePage() {
   const [newStart, setNewStart] = useState("09:00");
   const [newEnd, setNewEnd] = useState("17:00");
   const [newSlot, setNewSlot] = useState("60");
+
+  // Inline editing state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editType, setEditType] = useState("");
+  const [editDuration, setEditDuration] = useState("");
 
   const fetchData = useCallback(async () => {
     const weekStr = format(weekStart, "yyyy-MM-dd");
@@ -112,6 +120,35 @@ export default function AdminSchedulePage() {
     if (res.ok) {
       toast.success(`Session marked as ${status.toLowerCase()}`);
       fetchData();
+    }
+  }
+
+  function startEditing(s: Session) {
+    const d = toGymTime(s.date);
+    setEditingId(s.id);
+    setEditDate(format(d, "yyyy-MM-dd"));
+    setEditTime(format(d, "HH:mm"));
+    setEditType(s.type);
+    setEditDuration(String(s.duration || 60));
+  }
+
+  async function saveEdit(id: string) {
+    const dateTime = new Date(`${editDate}T${editTime}:00`);
+    const res = await fetch(`/api/sessions/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date: dateTime.toISOString(),
+        type: editType,
+        duration: parseInt(editDuration),
+      }),
+    });
+    if (res.ok) {
+      toast.success("Session updated");
+      setEditingId(null);
+      fetchData();
+    } else {
+      toast.error("Failed to update session");
     }
   }
 
@@ -246,56 +283,130 @@ export default function AdminSchedulePage() {
               {sessions.map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between rounded-lg border border-border p-3"
+                  className="rounded-lg border border-border p-3"
                 >
-                  <div>
-                    <p className="text-sm font-medium">
-                      {s.client.name || s.client.email}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(toGymTime(s.date), "EEE, MMM d • h:mm a")} •{" "}
-                      {s.type}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={
-                        s.status === "COMPLETED"
-                          ? "default"
-                          : s.status === "CANCELLED"
-                          ? "destructive"
-                          : s.status === "NO_SHOW"
-                          ? "outline"
-                          : "secondary"
-                      }
-                    >
-                      {s.status}
-                    </Badge>
-                    {s.status === "BOOKED" && (
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs text-green-500"
-                          onClick={() =>
-                            updateSessionStatus(s.id, "COMPLETED")
-                          }
-                        >
-                          Complete
+                  {editingId === s.id ? (
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium">
+                        {s.client.name || s.client.email}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                        <div>
+                          <Label className="text-xs">Date</Label>
+                          <Input
+                            type="date"
+                            value={editDate}
+                            onChange={(e) => setEditDate(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Time</Label>
+                          <Input
+                            type="time"
+                            value={editTime}
+                            onChange={(e) => setEditTime(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Type</Label>
+                          <Select value={editType} onValueChange={setEditType}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="PERSONAL">Personal</SelectItem>
+                              <SelectItem value="GROUP">Group</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Duration</Label>
+                          <Select value={editDuration} onValueChange={setEditDuration}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="30">30 min</SelectItem>
+                              <SelectItem value="45">45 min</SelectItem>
+                              <SelectItem value="60">60 min</SelectItem>
+                              <SelectItem value="90">90 min</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveEdit(s.id)}>
+                          <Check className="mr-1 h-3 w-3" /> Save
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-xs text-yellow-500"
-                          onClick={() =>
-                            updateSessionStatus(s.id, "NO_SHOW")
-                          }
+                          onClick={() => setEditingId(null)}
                         >
-                          No-Show
+                          <X className="mr-1 h-3 w-3" /> Cancel
                         </Button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">
+                          {s.client.name || s.client.email}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(toGymTime(s.date), "EEE, MMM d • h:mm a")} •{" "}
+                          {s.type} • {s.duration || 60}min
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            s.status === "COMPLETED"
+                              ? "default"
+                              : s.status === "CANCELLED"
+                              ? "destructive"
+                              : s.status === "NO_SHOW"
+                              ? "outline"
+                              : "secondary"
+                          }
+                        >
+                          {s.status}
+                        </Badge>
+                        {s.status === "BOOKED" && (
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs"
+                              onClick={() => startEditing(s)}
+                            >
+                              <Pencil className="mr-1 h-3 w-3" /> Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs text-green-500"
+                              onClick={() =>
+                                updateSessionStatus(s.id, "COMPLETED")
+                              }
+                            >
+                              Complete
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs text-yellow-500"
+                              onClick={() =>
+                                updateSessionStatus(s.id, "NO_SHOW")
+                              }
+                            >
+                              No-Show
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

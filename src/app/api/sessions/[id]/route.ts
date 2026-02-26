@@ -11,7 +11,7 @@ export async function PUT(
   if (!session?.user) return NextResponse.json({}, { status: 401 });
 
   const { id } = await params;
-  const { status, notes } = await req.json();
+  const body = await req.json();
 
   const trainingSession = await db.trainingSession.findUnique({ where: { id } });
   if (!trainingSession) return NextResponse.json({}, { status: 404 });
@@ -21,7 +21,7 @@ export async function PUT(
     if (trainingSession.clientId !== session.user.id) {
       return NextResponse.json({}, { status: 403 });
     }
-    if (status !== "CANCELLED") {
+    if (body.status !== "CANCELLED") {
       return NextResponse.json(
         { error: "Clients can only cancel sessions" },
         { status: 403 }
@@ -29,12 +29,23 @@ export async function PUT(
     }
   }
 
+  // Build dynamic update data
+  const data: Record<string, unknown> = {};
+  if (body.status !== undefined) data.status = body.status;
+  if (body.notes !== undefined) data.notes = body.notes;
+  // Admin/Trainer can also update date, type, duration
+  if (session.user.role === "ADMIN" || session.user.role === "TRAINER") {
+    if (body.date !== undefined) data.date = new Date(body.date);
+    if (body.type !== undefined) data.type = body.type;
+    if (body.duration !== undefined) data.duration = body.duration;
+  }
+
   const updated = await db.trainingSession.update({
     where: { id },
-    data: { status, notes },
+    data,
   });
 
-  appendToSheet("Sessions", [new Date().toISOString(), "UPDATED", id, trainingSession.clientId, trainingSession.trainerId, status, notes]);
+  appendToSheet("Sessions", [new Date().toISOString(), "UPDATED", id, trainingSession.clientId, trainingSession.trainerId, updated.date?.toISOString(), updated.type, updated.duration, updated.status, updated.notes]);
 
   return NextResponse.json(updated);
 }
