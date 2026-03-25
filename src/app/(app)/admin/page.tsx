@@ -1,111 +1,127 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Calendar, Dumbbell, UserPlus, MapPin } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { format, startOfDay, subDays } from "date-fns";
 
-interface Stats {
-  totalClients: number;
-  newClientsThisMonth: number;
-  sessionsThisWeek: number;
-  totalWorkouts: number;
-  checkInsToday: number;
+function toGymTime(date: Date): Date {
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCHours(), date.getUTCMinutes());
 }
 
-interface CheckIn {
-  id: string;
-  date: string;
-  user: { name: string | null; image: string | null };
-}
+export default async function AdminDashboard() {
+  const session = await auth();
+  if (!session?.user || session.user.role === "CLIENT") redirect("/dashboard");
 
-export default function AdminDashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
+  const now = new Date();
 
-  useEffect(() => {
-    fetch("/api/admin/stats")
-      .then((r) => r.json())
-      .then(setStats);
-    fetch("/api/checkins")
-      .then((r) => r.json())
-      .then((data: CheckIn[]) => setCheckIns(data.slice(0, 10)));
-  }, []);
+  const [upcomingSessions, announcements] = await Promise.all([
+    db.trainingSession.findMany({
+      where: {
+        date: { gte: startOfDay(subDays(now, 1)) },
+        status: "BOOKED",
+      },
+      orderBy: { date: "asc" },
+      take: 20,
+      include: {
+        client: { select: { name: true, email: true } },
+      },
+    }),
+    db.announcement.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: { author: { select: { name: true } } },
+    }),
+  ]);
 
-  const cards = [
-    {
-      label: "Total Clients",
-      value: stats?.totalClients ?? "—",
-      icon: Users,
-      color: "text-blue-400",
-    },
-    {
-      label: "New This Month",
-      value: stats?.newClientsThisMonth ?? "—",
-      icon: UserPlus,
-      color: "text-green-400",
-    },
-    {
-      label: "Sessions This Week",
-      value: stats?.sessionsThisWeek ?? "—",
-      icon: Calendar,
-      color: "text-brand",
-    },
-    {
-      label: "Completed Workouts",
-      value: stats?.totalWorkouts ?? "—",
-      icon: Dumbbell,
-      color: "text-purple-400",
-    },
-    {
-      label: "Check-Ins Today",
-      value: stats?.checkInsToday ?? "—",
-      icon: MapPin,
-      color: "text-orange-400",
-    },
-  ];
+  // Group sessions by date label
+  const grouped: Record<string, typeof upcomingSessions> = {};
+  for (const s of upcomingSessions) {
+    const key = format(toGymTime(s.date), "yyyy-MM-dd");
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(s);
+  }
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {cards.map((card) => (
-          <Card key={card.label} className="border-border bg-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {card.label}
-              </CardTitle>
-              <card.icon className={`h-5 w-5 ${card.color}`} />
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{card.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
-      {/* Recent Check-Ins Ticker */}
-      {checkIns.length > 0 && (
-        <Card className="border-border bg-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Recent Check-Ins
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {checkIns.map((ci) => (
-                <div key={ci.id} className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{ci.user.name || "Member"}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(ci.date), { addSuffix: true })}
-                  </span>
+      {/* Upcoming Bookings grouped by day */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Upcoming Bookings
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {Object.keys(grouped).length === 0 ? (
+            <p className="text-sm text-muted-foreground">No upcoming bookings</p>
+          ) : (
+            <div className="space-y-5">
+              {Object.entries(grouped).map(([dateKey, sessions]) => (
+                <div key={dateKey}>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {format(new Date(dateKey + "T12:00:00"), "EEEE, MMMM d")}
+                  </p>
+                  <div className="space-y-2">
+                    {sessions.map((s) => (
+                      <div
+                        key={s.id}
+                        className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+                      >
+                        <div>
+                          <p className="text-sm font-medium">
+                            {s.client.name || s.client.email}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(toGymTime(s.date), "h:mm a")} · {s.duration || 60} min
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {s.type}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Announcements */}
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Announcements
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {announcements.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No announcements yet</p>
+          ) : (
+            <div className="space-y-3">
+              {announcements.map((a) => (
+                <div key={a.id} className="flex items-start justify-between gap-3 border-l-2 border-brand pl-3">
+                  <div>
+                    <p className="text-sm font-medium">{a.title}</p>
+                    <p className="text-xs text-muted-foreground">{a.body}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {format(new Date(a.createdAt), "MMM d, yyyy")}
+                    </p>
+                  </div>
+                  {a.pinned && (
+                    <Badge variant="secondary" className="shrink-0 text-xs">
+                      Pinned
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
