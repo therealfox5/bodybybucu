@@ -152,3 +152,8 @@ export function findPaymentClientFor(
     ) || null
   );
 }
+
+/** Default password for a sheet client: their phone number (10 digits), else 0000000000. */
+export function sheetPasswordFor(client: PaymentClient): string {
+  return client.phone || "0000000000";
+}
