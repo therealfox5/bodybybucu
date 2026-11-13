@@ -157,3 +157,23 @@ export function findPaymentClientFor(
 export function sheetPasswordFor(client: PaymentClient): string {
   return client.phone || "0000000000";
 }
+
+/**
+ * True while an account is still using its default sheet password
+ * (phone number, or 0000000000). Used to force a password change.
+ */
+export async function usesDefaultPassword(
+  user: { email?: string | null; hashedPassword?: string | null },
+  clients: PaymentClient[]
+): Promise<boolean> {
+  const email = (user.email || "").trim().toLowerCase();
+  if (!email || !user.hashedPassword) return false;
+  const client = clients.find((c) => c.email === email);
+  if (!client) return false;
+  const { compare } = await import("bcryptjs");
+  const candidates = new Set([sheetPasswordFor(client), "0000000000"]);
+  for (const pw of candidates) {
+    if (await compare(pw, user.hashedPassword)) return true;
+  }
+  return false;
+}

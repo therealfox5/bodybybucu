@@ -3,7 +3,10 @@ import { db } from "@/lib/db";
 import {
   getPaymentClients,
   findPaymentClientFor,
+  sheetPasswordFor,
+  usesDefaultPassword,
 } from "@/lib/payments-sheet";
+import { ResetPasswordButton } from "./reset-password-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -19,9 +22,25 @@ export default async function AdminPaymentsPage() {
     getPaymentClients(),
     db.user.findMany({
       where: { role: "CLIENT" },
-      select: { id: true, name: true, email: true, phone: true },
+      select: { id: true, name: true, email: true, phone: true, hashedPassword: true },
     }),
   ]);
+
+  // Login status per sheet client: no email / no account yet / default / changed
+  const loginStatus = new Map<string, "NO_EMAIL" | "NO_ACCOUNT" | "DEFAULT" | "CHANGED">();
+  for (const c of clients) {
+    if (!c.email) {
+      loginStatus.set(c.name, "NO_EMAIL");
+      continue;
+    }
+    const acct = users.find((u) => (u.email || "").toLowerCase() === c.email);
+    if (!acct) loginStatus.set(c.name, "NO_ACCOUNT");
+    else
+      loginStatus.set(
+        c.name,
+        (await usesDefaultPassword(acct, clients)) ? "DEFAULT" : "CHANGED"
+      );
+  }
 
   const linkedNames = new Set<string>();
   const unlinkedUsers = users.filter((u) => {
@@ -67,6 +86,24 @@ export default async function AdminPaymentsPage() {
                 {c.status && (
                   <p className="text-xs text-muted-foreground">{c.status}</p>
                 )}
+                <div className="mt-2 text-xs text-muted-foreground">
+                  {loginStatus.get(c.name) === "NO_EMAIL" ? (
+                    <span>Login: add an email in the sheet to enable</span>
+                  ) : (
+                    <>
+                      <span>
+                        Login: {c.email} · default password{" "}
+                        <code>{sheetPasswordFor(c)}</code> ·{" "}
+                        {loginStatus.get(c.name) === "NO_ACCOUNT" && "not signed in yet"}
+                        {loginStatus.get(c.name) === "DEFAULT" && "still on default password"}
+                        {loginStatus.get(c.name) === "CHANGED" && "password changed by client"}
+                      </span>
+                      {loginStatus.get(c.name) !== "NO_ACCOUNT" && (
+                        <ResetPasswordButton email={c.email} />
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {c.lastPaid ? (
