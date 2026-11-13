@@ -9,6 +9,7 @@ import {
   Calendar,
   Activity,
   Dumbbell,
+  DollarSign,
   User,
   Shield,
   LogOut,
@@ -30,6 +31,7 @@ const clientNav = [
 const adminNav = [
   { href: "/admin", label: "Admin", icon: Shield },
   { href: "/admin/clients", label: "Clients", icon: User },
+  { href: "/admin/payments", label: "Payments", icon: DollarSign },
   { href: "/admin/schedule", label: "Schedule", icon: Calendar },
   { href: "/admin/announcements", label: "Announce", icon: Activity },
 ];

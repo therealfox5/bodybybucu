@@ -1,8 +1,9 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { compare } from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import { db } from "./db";
+import { getPaymentClients, sheetPasswordFor } from "./payments-sheet";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
@@ -20,16 +21,52 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await db.user.findUnique({
-          where: { email: (credentials.email as string).toLowerCase() },
-        });
+        const email = (credentials.email as string).trim().toLowerCase();
+        const password = credentials.password as string;
+
+        // Every client listed in the payments sheet gets a login:
+        // username = their sheet email, password = their sheet phone number
+        // (digits only, 10 digits), or 0000000000 when no phone is on file.
+        const sheetClients = await getPaymentClients();
+        const sheetClient = sheetClients.find((c) => c.email === email) || null;
+        const sheetPassword = sheetClient ? sheetPasswordFor(sheetClient) : null;
+        const typed = password.replace(/\D/g, "") || password;
+
+        let user = await db.user.findUnique({ where: { email } });
+
+        if (!user && sheetClient && sheetPassword && typed === sheetPassword) {
+          // First sign-in: create the account from the sheet
+          user = await db.user.create({
+            data: {
+              email,
+              name: sheetClient.name,
+              phone: sheetClient.phoneDisplay || null,
+              role: "CLIENT",
+              hashedPassword: await hash(sheetPassword, 10),
+            },
+          });
+        }
 
         if (!user || !user.hashedPassword) return null;
 
-        const isValid = await compare(
-          credentials.password as string,
-          user.hashedPassword
-        );
+        let isValid = await compare(password, user.hashedPassword);
+
+        // Still on the 0000000000 placeholder and the sheet now has a phone number:
+        // accept the phone number and make it the password.
+        if (
+          !isValid &&
+          sheetClient &&
+          sheetPassword &&
+          sheetPassword !== "0000000000" &&
+          typed === sheetPassword &&
+          (await compare("0000000000", user.hashedPassword))
+        ) {
+          await db.user.update({
+            where: { id: user.id },
+            data: { hashedPassword: await hash(sheetPassword, 10) },
+          });
+          isValid = true;
+        }
 
         if (!isValid) return null;
 
