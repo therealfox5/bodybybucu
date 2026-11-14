@@ -53,14 +53,31 @@ export function normalizePhone(p: string | null | undefined): string {
   return digits.length >= 10 ? digits.slice(-10) : "";
 }
 
-function parseMoney(v: unknown): number {
-  if (typeof v === "number") return v;
-  const s = String(v ?? "").trim();
+/** First dollar figure in the Rate column ("$200", "$250*", "$600 / 3 months"). */
+function parseRate(v: unknown): number {
+  const m = String(v ?? "").match(/\$\s*(\d+(?:\.\d+)?)/);
+  return m ? parseFloat(m[1]) : 0;
+}
+
+/**
+ * Month cells are free text like "Zelle 9/25", "Zelle 8/14 ($220)" or "$160 on 9/12 (8 sessions)".
+ * Returns what was paid that month, or 0 if the cell is not a payment.
+ *  - dollar figures in the text win ("$75 + $25" = 100; "$50 owed" is ignored)
+ *  - otherwise the payment is the client's monthly rate, once per dated payment
+ */
+function parseMonthPayment(cell: unknown, rate: number): number {
+  if (typeof cell === "number") return cell > 0 ? cell : 0;
+  const s = String(cell ?? "").trim();
   if (!s) return 0;
-  const neg = s.startsWith("-") || s.startsWith("(");
-  const n = parseFloat(s.replace(/[^0-9.]/g, ""));
-  if (Number.isNaN(n)) return 0;
-  return neg ? -n : n;
+  if (/^(n\/a|\?|overdue|see\b|no sessions|prepaid|paid thru)/i.test(s)) return 0;
+  if (/\bdue\b/i.test(s) && !/paid/i.test(s)) return 0;
+
+  const cleaned = s.replace(/\$\s*\d+(?:\.\d+)?\s*(?:still\s+)?owed/gi, "");
+  const dollars = [...cleaned.matchAll(/\$\s*(\d+(?:\.\d+)?)/g)].map((m) => parseFloat(m[1]));
+  if (dollars.length) return dollars.reduce((a, b) => a + b, 0);
+
+  const dated = (cleaned.match(/\b\d{1,2}\/\d{1,2}\b/g) || []).length;
+  return rate * Math.max(1, dated);
 }
 
 // Sheet months run Dec (2025) through Nov (2026)
@@ -94,9 +111,9 @@ async function fetchPaymentClients(): Promise<PaymentClient[]> {
     if (name.toUpperCase() === "TOTAL") break;
 
     const months: MonthPayment[] = [];
+    const rate = parseRate(row[1]);
     for (let c = 2; c <= 13; c++) {
-      const amount = parseMoney(row[c]);
-      // negative amounts mean "not paid yet" in the sheet
+      const amount = parseMonthPayment(row[c], rate);
       if (amount > 0 && header[c]) {
         months.push({ label: monthLabel(String(header[c])), amount });
       }
