@@ -6,7 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow, startOfDay, endOfDay } from "date-fns";
 import { WeightMiniChart } from "./weight-mini-chart";
 import { CheckInButton } from "./check-in-button";
-import { getPaymentClients, findPaymentClientFor } from "@/lib/payments-sheet";
+import {
+  getPaymentClients,
+  findPaymentClientFor,
+  getClassPassMembers,
+  isClassPassMember,
+} from "@/lib/payments-sheet";
 
 /** DB stores Eastern times as UTC values — extract UTC components for correct display */
 function toGymTime(date: Date): Date {
@@ -38,14 +43,16 @@ export default async function DashboardPage() {
 
   const now = new Date();
 
-  const [me, paymentClients] = await Promise.all([
+  const [me, paymentClients, classPassMembers] = await Promise.all([
     db.user.findUnique({
       where: { id: userId },
       select: { email: true, phone: true },
     }),
     getPaymentClients(),
+    getClassPassMembers(),
   ]);
   const myPayments = me ? findPaymentClientFor(paymentClients, me) : null;
+  const isClassPass = me ? isClassPassMember(classPassMembers, me) : false;
 
   const [upcomingSessions, recentPRs, weightEntries, announcements, recentCheckIns, todayCheckIn] =
     await Promise.all([
@@ -154,7 +161,16 @@ export default async function DashboardPage() {
                 <p className="text-xs text-muted-foreground">
                   {myPayments.lastPaid.label}
                 </p>
+                {isClassPass && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    ClassPass sessions: please refer to ClassPass.
+                  </p>
+                )}
               </div>
+            ) : isClassPass ? (
+              <p className="text-sm text-muted-foreground">
+                Please refer to ClassPass for payments.
+              </p>
             ) : (
               <p className="text-sm text-muted-foreground">
                 No payment on record yet
