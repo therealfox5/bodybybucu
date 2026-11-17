@@ -136,6 +136,68 @@ async function fetchPaymentClients(): Promise<PaymentClient[]> {
   return clients;
 }
 
+const CLASSPASS_TAB = "Class Pass";
+
+export interface ClassPassMember {
+  name: string;
+  email: string;
+  phone: string; // digits only, last 10
+}
+
+/**
+ * Members listed on the "Class Pass" tab (A Name, B ClassPass Email, N Phone).
+ * Member rows run from row 2 until the first blank name.
+ */
+async function fetchClassPassMembers(): Promise<ClassPassMember[]> {
+  const auth = getAuth();
+  if (!auth) return [];
+  const sheets = google.sheets({ version: "v4", auth });
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: PAYMENTS_SHEET_ID,
+    range: `'${CLASSPASS_TAB}'!A2:N80`,
+    valueRenderOption: "FORMATTED_VALUE",
+  });
+  const members: ClassPassMember[] = [];
+  for (const row of res.data.values || []) {
+    const name = String(row?.[0] ?? "").trim();
+    if (!name) break;
+    members.push({
+      name,
+      email: String(row[1] ?? "").trim().toLowerCase(),
+      phone: normalizePhone(String(row[13] ?? "")),
+    });
+  }
+  return members;
+}
+
+export const getClassPassMembers = unstable_cache(
+  async () => {
+    try {
+      return await fetchClassPassMembers();
+    } catch (err) {
+      console.error(
+        "[Class Pass tab] read failed:",
+        err instanceof Error ? err.message : err
+      );
+      return [] as ClassPassMember[];
+    }
+  },
+  ["class-pass-members"],
+  { revalidate: 300 }
+);
+
+/** True when the user's email or phone matches a Class Pass tab member (never by name). */
+export function isClassPassMember(
+  members: ClassPassMember[],
+  user: { email?: string | null; phone?: string | null }
+): boolean {
+  const email = (user.email || "").trim().toLowerCase();
+  const phone = normalizePhone(user.phone);
+  return members.some(
+    (m) => (email && m.email === email) || (phone && m.phone === phone)
+  );
+}
+
 /** Cached for 5 minutes so the app doesn't hit the Sheets API on every page view. */
 export const getPaymentClients = unstable_cache(
   async () => {
